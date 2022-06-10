@@ -12,10 +12,10 @@ func routes() http.Handler {
 
 	router.HandleFunc("/", handlers.Repo.Home).Methods("GET")
 
-	router.HandleFunc("/users", handlers.Repo.UsersGetAll).Methods("GET")
-	router.HandleFunc("/users/{id}", handlers.Repo.UsersGet).Methods("GET")
-	router.HandleFunc("/users", handlers.Repo.UsersPost).Methods("POST")
-	router.HandleFunc("/users/{id}", handlers.Repo.UsersDelete).Methods("DELETE")
+	router.HandleFunc("/users", handlers.Repo.GetAllUsers).Methods("GET")
+	router.HandleFunc("/users/{id}", handlers.Repo.GetUser).Methods("GET")
+	router.HandleFunc("/users", handlers.Repo.PostUser).Methods("POST")
+	router.HandleFunc("/users/{id}", handlers.Repo.DeleteUser).Methods("DELETE")
 
 	return router
 }

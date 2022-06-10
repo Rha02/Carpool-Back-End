@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/Rha02/carpool_app/dbrepo"
+	"github.com/Rha02/carpool_app/driver"
 )
 
 // Repo is a repository for handlers
@@ -11,12 +14,12 @@ var Repo *Repository
 
 // Repository will contain any variables globally used by handlers
 type Repository struct {
-	dummy int
+	DB dbrepo.DatabaseRepository
 }
 
 // NewRepo creates and returns a pointer to a new repository
-func NewRepo(n int) *Repository {
-	return &Repository{n}
+func NewRepo(db *driver.DB) *Repository {
+	return &Repository{dbrepo.NewDatabaseRepo(db)}
 }
 
 // NewHandlers will set the global repo variable

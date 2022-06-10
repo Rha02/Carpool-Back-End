@@ -3,43 +3,36 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/Rha02/carpool_app/models"
 	"github.com/gorilla/mux"
 )
 
 // UsersGetAll returns all users
-func (repo *Repository) UsersGetAll(rw http.ResponseWriter, r *http.Request) {
+func (m *Repository) GetAllUsers(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Set("Content-Type", "application/json")
 
-	users := models.GetExampleUsers()
+	users := m.DB.GetAllUsers()
 
 	respondJSON(rw, users, http.StatusOK)
 }
 
-// UsersGet returns a user by specified id
-func (repo *Repository) UsersGet(rw http.ResponseWriter, r *http.Request) {
+// GetUsers returns a user by specified id
+func (m *Repository) GetUser(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	id, err := strconv.Atoi(vars["id"])
+	user, err := m.DB.GetUserByID(vars["id"])
 	if err != nil {
-		http.Error(rw, "error: could not parse user id", http.StatusBadRequest)
+		http.Error(rw, fmt.Sprintf("error: could not find user by id %s", vars["id"]), http.StatusNotFound)
 		return
 	}
-
-	user := models.GetUserByID(id)
 
 	// TODO: Return helpful json error response when user is not found
-	if user == nil {
-		http.Error(rw, fmt.Sprintf("error: user by id %d is not found", id), http.StatusNotFound)
-		return
-	}
 
 	respondJSON(rw, *user, http.StatusOK)
 }
 
-func (repo *Repository) UsersPost(rw http.ResponseWriter, r *http.Request) {
+func (m *Repository) PostUser(rw http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		http.Error(rw, "error: could not parse request form", http.StatusSeeOther)
@@ -57,21 +50,18 @@ func (repo *Repository) UsersPost(rw http.ResponseWriter, r *http.Request) {
 		Name:  name,
 	}
 
-	models.InsertUser(user)
+	err = m.DB.CreateUser(user)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusSeeOther)
+	}
 
 	respondJSON(rw, "", http.StatusOK)
 }
 
-func (repo *Repository) UsersDelete(rw http.ResponseWriter, r *http.Request) {
+func (m *Repository) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	id, err := strconv.Atoi(vars["id"])
-	if err != nil {
-		http.Error(rw, "error: could not parse user id", http.StatusBadRequest)
-		return
-	}
-
-	err = models.DeleteUser(id)
+	err := m.DB.DeleteUserByID(vars["id"])
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusNotFound)
 		return
