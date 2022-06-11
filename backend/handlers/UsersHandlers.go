@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/Rha02/carpool_app/models"
@@ -12,7 +13,10 @@ import (
 func (m *Repository) GetAllUsers(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Set("Content-Type", "application/json")
 
-	users := m.DB.GetAllUsers()
+	users, err := m.DB.GetAllUsers()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	respondJSON(rw, users, http.StatusOK)
 }
@@ -53,6 +57,7 @@ func (m *Repository) PostUser(rw http.ResponseWriter, r *http.Request) {
 	err = m.DB.CreateUser(user)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusSeeOther)
+		return
 	}
 
 	respondJSON(rw, "", http.StatusOK)

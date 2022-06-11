@@ -2,13 +2,13 @@ package dbrepo
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
 	"github.com/Rha02/carpool_app/driver"
 	"github.com/Rha02/carpool_app/models"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type DBRepo struct {
@@ -20,7 +20,7 @@ func NewDatabaseRepo(db *driver.DB) DatabaseRepository {
 }
 
 // GetAllUsers returns an array of all users
-func (m *DBRepo) GetAllUsers() []models.User {
+func (m *DBRepo) GetAllUsers() ([]models.User, error) {
 	var res []models.User
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -28,40 +28,64 @@ func (m *DBRepo) GetAllUsers() []models.User {
 
 	cur, err := m.DB.Conn.Collection("users").Find(ctx, bson.D{})
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	defer cur.Close(ctx)
 
-	for cur.Next(ctx) {
-		var result models.User
-
-		err = cur.Decode(&result)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		res = append(res, result)
+	if err = cur.All(ctx, &res); err != nil {
+		return nil, err
 	}
 
-	if err = cur.Err(); err != nil {
-		log.Fatal(err)
-	}
-
-	return res
+	return res, nil
 }
 
 func (m *DBRepo) GetUserByID(id string) (*models.User, error) {
-	fmt.Println("Get User By ID")
-	return nil, nil
+	var res models.User
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+
+	filter := bson.M{"_id": objectId}
+	err = m.DB.Conn.Collection("users").FindOne(ctx, filter).Decode(&res)
+	if err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
+
+	return &res, nil
 }
 
 func (m *DBRepo) CreateUser(u models.User) error {
-	fmt.Println("Create User")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := m.DB.Conn.Collection("users").InsertOne(ctx, u)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (m *DBRepo) DeleteUserByID(id string) error {
-	fmt.Println("Delete User By ID")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	_, err = m.DB.Conn.Collection("users").DeleteOne(ctx, bson.M{"_id": objectId})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
