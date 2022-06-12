@@ -89,3 +89,22 @@ func (m *DBRepo) DeleteUserByID(id string) error {
 
 	return nil
 }
+
+func (m *DBRepo) UpdateUserByID(id string, updatedUser models.User) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	query := bson.D{{Key: "$set", Value: updatedUser}}
+
+	_, err = m.DB.Conn.Collection("users").UpdateByID(ctx, objectId, query)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

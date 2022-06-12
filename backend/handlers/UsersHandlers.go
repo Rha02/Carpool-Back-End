@@ -60,7 +60,7 @@ func (m *Repository) PostUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondJSON(rw, "", http.StatusOK)
+	respondJSON(rw, "", http.StatusCreated)
 }
 
 func (m *Repository) DeleteUser(rw http.ResponseWriter, r *http.Request) {
@@ -69,6 +69,34 @@ func (m *Repository) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 	err := m.DB.DeleteUserByID(vars["id"])
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	respondJSON(rw, "", http.StatusOK)
+}
+
+func (m *Repository) UpdateUser(rw http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(rw, "error: could not parse request form", http.StatusSeeOther)
+		return
+	}
+
+	vars := mux.Vars(r)
+
+	id := vars["id"]
+
+	email := r.Form.Get("email")
+	name := r.Form.Get("name")
+
+	updatedUser := models.User{
+		Email: email,
+		Name:  name,
+	}
+
+	err = m.DB.UpdateUserByID(id, updatedUser)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusNotAcceptable)
 		return
 	}
 

@@ -16,6 +16,7 @@ func routes() http.Handler {
 	router.HandleFunc("/users/{id}", handlers.Repo.GetUser).Methods("GET")
 	router.HandleFunc("/users", handlers.Repo.PostUser).Methods("POST")
 	router.HandleFunc("/users/{id}", handlers.Repo.DeleteUser).Methods("DELETE")
+	router.HandleFunc("/users/{id}", handlers.Repo.UpdateUser).Methods("PUT", "PATCH")
 
 	return router
 }
