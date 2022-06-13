@@ -15,8 +15,14 @@ type DBRepo struct {
 	DB *driver.DB
 }
 
+type TestDBRepo struct{}
+
 func NewDatabaseRepo(db *driver.DB) DatabaseRepository {
 	return &DBRepo{db}
+}
+
+func NewTestingRepo() DatabaseRepository {
+	return &TestDBRepo{}
 }
 
 // GetAllUsers returns an array of all users

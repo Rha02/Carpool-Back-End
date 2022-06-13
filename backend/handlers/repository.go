@@ -22,6 +22,10 @@ func NewRepo(db *driver.DB) *Repository {
 	return &Repository{dbrepo.NewDatabaseRepo(db)}
 }
 
+func NewTestRepo() *Repository {
+	return &Repository{dbrepo.NewTestingRepo()}
+}
+
 // NewHandlers will set the global repo variable
 func NewHandlers(r *Repository) {
 	Repo = r
