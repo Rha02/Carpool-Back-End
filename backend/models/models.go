@@ -7,3 +7,10 @@ type User struct {
 	Email string             `json:"email"`
 	Name  string             `json:"name"`
 }
+
+type Thread struct {
+	ID     primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	UserID primitive.ObjectID `bson:"user_id" json:"user_id"`
+	Title  string             `json:"title"`
+	Body   string             `json:"body"`
+}

@@ -9,4 +9,11 @@ type DatabaseRepository interface {
 	CreateUser(u models.User) error
 	UpdateUserByID(id string, u models.User) error
 	DeleteUserByID(id string) error
+
+	GetAllThreads() ([]models.Thread, error)
+	GetUserThreads(id string) ([]models.Thread, error)
+	GetThreadByID(id string) (*models.Thread, error)
+	CreateThread(t models.Thread) error
+	UpdateThreadByID(id string, t models.Thread) error
+	DeleteThreadByID(id string) error
 }

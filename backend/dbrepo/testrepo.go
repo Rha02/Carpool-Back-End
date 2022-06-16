@@ -38,3 +38,27 @@ func (m *TestDBRepo) DeleteUserByID(id string) error {
 	}
 	return nil
 }
+
+func (m *TestDBRepo) GetAllThreads() ([]models.Thread, error) {
+	return nil, nil
+}
+
+func (m *TestDBRepo) GetUserThreads(id string) ([]models.Thread, error) {
+	return nil, nil
+}
+
+func (m *TestDBRepo) GetThreadByID(id string) (*models.Thread, error) {
+	return nil, nil
+}
+
+func (m *TestDBRepo) CreateThread(t models.Thread) error {
+	return nil
+}
+
+func (m *TestDBRepo) UpdateThreadByID(id string, t models.Thread) error {
+	return nil
+}
+
+func (m *TestDBRepo) DeleteThreadByID(id string) error {
+	return nil
+}

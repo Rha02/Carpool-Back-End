@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/Rha02/carpool_app/models"
@@ -11,11 +9,10 @@ import (
 
 // UsersGetAll returns all users
 func (m *Repository) GetAllUsers(rw http.ResponseWriter, r *http.Request) {
-	rw.Header().Set("Content-Type", "application/json")
-
 	users, err := m.DB.GetAllUsers()
 	if err != nil {
-		log.Fatal(err)
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	respondJSON(rw, users, http.StatusOK)
@@ -27,7 +24,7 @@ func (m *Repository) GetUser(rw http.ResponseWriter, r *http.Request) {
 
 	user, err := m.DB.GetUserByID(vars["id"])
 	if err != nil {
-		http.Error(rw, fmt.Sprintf("error: could not find user by id %s", vars["id"]), http.StatusNotFound)
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -39,7 +36,7 @@ func (m *Repository) GetUser(rw http.ResponseWriter, r *http.Request) {
 func (m *Repository) PostUser(rw http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
-		http.Error(rw, "error: could not parse request form", http.StatusSeeOther)
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -78,7 +75,7 @@ func (m *Repository) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 func (m *Repository) UpdateUser(rw http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
-		http.Error(rw, "error: could not parse request form", http.StatusSeeOther)
+		http.Error(rw, err.Error(), http.StatusSeeOther)
 		return
 	}
 
