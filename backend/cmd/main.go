@@ -5,12 +5,16 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/Rha02/carpool_app/config"
 	"github.com/Rha02/carpool_app/driver"
 	"github.com/Rha02/carpool_app/handlers"
+	"github.com/gorilla/sessions"
 	"github.com/joho/godotenv"
 )
 
 const port = ":8080"
+
+var app config.AppConfig
 
 func main() {
 	fmt.Println("Starting App...")
@@ -24,8 +28,12 @@ func main() {
 		panic(err)
 	}
 
+	store := sessions.NewCookieStore([]byte(os.Getenv("SECRET_KEY")))
+
+	app.CookieStore = store
+
 	// Initialize the repository for handlers
-	repo := handlers.NewRepo(db)
+	repo := handlers.NewRepo(&app, db)
 	handlers.NewHandlers(repo)
 
 	router := routes()

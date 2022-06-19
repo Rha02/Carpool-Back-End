@@ -6,6 +6,14 @@ import (
 	"github.com/Rha02/carpool_app/models"
 )
 
+func (m *TestDBRepo) Authenticate(email, password string) error {
+	return nil
+}
+
+func (m *TestDBRepo) RegisterUser(u models.User) error {
+	return nil
+}
+
 func (m *TestDBRepo) GetAllUsers() ([]models.User, error) {
 	return []models.User{}, nil
 }

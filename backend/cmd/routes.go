@@ -12,6 +12,12 @@ func routes() http.Handler {
 
 	router.HandleFunc("/", handlers.Repo.Home).Methods("GET")
 
+	// Authentication
+	router.HandleFunc("/login", handlers.Repo.Login).Methods("POST")
+	router.HandleFunc("/logout", handlers.Repo.Logout).Methods("POST")
+	router.HandleFunc("/register", handlers.Repo.Register).Methods("POST")
+	router.HandleFunc("/checkauth", handlers.Repo.CheckAuth).Methods("GET")
+
 	// Users
 	router.HandleFunc("/users", handlers.Repo.GetAllUsers).Methods("GET")
 	router.HandleFunc("/users/{id}", handlers.Repo.GetUser).Methods("GET")

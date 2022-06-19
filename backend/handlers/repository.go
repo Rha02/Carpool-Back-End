@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Rha02/carpool_app/config"
 	"github.com/Rha02/carpool_app/dbrepo"
 	"github.com/Rha02/carpool_app/driver"
 )
@@ -14,16 +15,23 @@ var Repo *Repository
 
 // Repository will contain any variables globally used by handlers
 type Repository struct {
-	DB dbrepo.DatabaseRepository
+	App *config.AppConfig
+	DB  dbrepo.DatabaseRepository
 }
 
 // NewRepo creates and returns a pointer to a new repository
-func NewRepo(db *driver.DB) *Repository {
-	return &Repository{dbrepo.NewDatabaseRepo(db)}
+func NewRepo(app *config.AppConfig, db *driver.DB) *Repository {
+	return &Repository{
+		App: app,
+		DB:  dbrepo.NewDatabaseRepo(db),
+	}
 }
 
-func NewTestRepo() *Repository {
-	return &Repository{dbrepo.NewTestingRepo()}
+func NewTestRepo(app *config.AppConfig) *Repository {
+	return &Repository{
+		App: app,
+		DB:  dbrepo.NewTestingRepo(),
+	}
 }
 
 // NewHandlers will set the global repo variable

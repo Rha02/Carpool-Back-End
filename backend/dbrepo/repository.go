@@ -4,6 +4,9 @@ import "github.com/Rha02/carpool_app/models"
 
 // DatabaseRepository is an interface for DBRepo
 type DatabaseRepository interface {
+	Authenticate(email, password string) error
+	RegisterUser(u models.User) error
+
 	GetAllUsers() ([]models.User, error)
 	GetUserByID(id string) (*models.User, error)
 	CreateUser(u models.User) error

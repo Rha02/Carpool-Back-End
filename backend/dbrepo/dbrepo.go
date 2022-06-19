@@ -2,12 +2,15 @@ package dbrepo
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/Rha02/carpool_app/driver"
 	"github.com/Rha02/carpool_app/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type DBRepo struct {
@@ -22,6 +25,50 @@ func NewDatabaseRepo(db *driver.DB) DatabaseRepository {
 
 func NewTestingRepo() DatabaseRepository {
 	return &TestDBRepo{}
+}
+
+func (m *DBRepo) Authenticate(email string, password string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var u models.User
+
+	filter := bson.M{"email": email}
+	err := m.DB.Conn.Collection("users").FindOne(ctx, filter).Decode(&u)
+	if err != nil {
+		return err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *DBRepo) RegisterUser(u models.User) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	filter := bson.M{"email": u.Email}
+	err := m.DB.Conn.Collection("users").FindOne(ctx, filter).Err()
+	if !errors.Is(err, mongo.ErrNoDocuments) {
+		return err
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	u.Password = string(hashedPassword)
+
+	_, err = m.DB.Conn.Collection("users").InsertOne(ctx, u)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // GetAllUsers returns an array of all users
