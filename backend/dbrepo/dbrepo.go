@@ -3,6 +3,7 @@ package dbrepo
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/Rha02/carpool_app/driver"
@@ -27,7 +28,7 @@ func NewTestingRepo() DatabaseRepository {
 	return &TestDBRepo{}
 }
 
-func (m *DBRepo) Authenticate(email string, password string) error {
+func (m *DBRepo) Authenticate(email string, password string) (*models.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -36,39 +37,41 @@ func (m *DBRepo) Authenticate(email string, password string) error {
 	filter := bson.M{"email": email}
 	err := m.DB.Conn.Collection("users").FindOne(ctx, filter).Decode(&u)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &u, nil
 }
 
-func (m *DBRepo) RegisterUser(u models.User) error {
+func (m *DBRepo) RegisterUser(u models.User) (*models.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	filter := bson.M{"email": u.Email}
 	err := m.DB.Conn.Collection("users").FindOne(ctx, filter).Err()
 	if !errors.Is(err, mongo.ErrNoDocuments) {
-		return err
+		return nil, fmt.Errorf("error: this email is already in use")
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	u.Password = string(hashedPassword)
 
-	_, err = m.DB.Conn.Collection("users").InsertOne(ctx, u)
+	res, err := m.DB.Conn.Collection("users").InsertOne(ctx, u)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	u.ID = res.InsertedID.(primitive.ObjectID)
+
+	return &u, nil
 }
 
 // GetAllUsers returns an array of all users
@@ -110,18 +113,6 @@ func (m *DBRepo) GetUserByID(id string) (*models.User, error) {
 	}
 
 	return &res, nil
-}
-
-func (m *DBRepo) CreateUser(u models.User) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	_, err := m.DB.Conn.Collection("users").InsertOne(ctx, u)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (m *DBRepo) DeleteUserByID(id string) error {

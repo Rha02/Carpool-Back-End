@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/gob"
 	"fmt"
 	"net/http"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"github.com/Rha02/carpool_app/config"
 	"github.com/Rha02/carpool_app/driver"
 	"github.com/Rha02/carpool_app/handlers"
+	"github.com/Rha02/carpool_app/models"
 	"github.com/gorilla/sessions"
 	"github.com/joho/godotenv"
 )
@@ -27,6 +29,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	// Register User model for use by gorilla/sessions
+	gob.Register(models.User{})
 
 	store := sessions.NewCookieStore([]byte(os.Getenv("SECRET_KEY")))
 

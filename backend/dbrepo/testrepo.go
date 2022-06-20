@@ -6,12 +6,12 @@ import (
 	"github.com/Rha02/carpool_app/models"
 )
 
-func (m *TestDBRepo) Authenticate(email, password string) error {
-	return nil
+func (m *TestDBRepo) Authenticate(email, password string) (*models.User, error) {
+	return nil, nil
 }
 
-func (m *TestDBRepo) RegisterUser(u models.User) error {
-	return nil
+func (m *TestDBRepo) RegisterUser(u models.User) (*models.User, error) {
+	return nil, nil
 }
 
 func (m *TestDBRepo) GetAllUsers() ([]models.User, error) {
@@ -24,13 +24,6 @@ func (m *TestDBRepo) GetUserByID(id string) (*models.User, error) {
 	}
 
 	return &models.User{}, nil
-}
-
-func (m *TestDBRepo) CreateUser(u models.User) error {
-	if u.Name == "error" {
-		return errors.New("error")
-	}
-	return nil
 }
 
 func (m *TestDBRepo) UpdateUserByID(id string, u models.User) error {

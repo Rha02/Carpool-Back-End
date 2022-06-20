@@ -6,7 +6,7 @@ type User struct {
 	ID       primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	Email    string             `json:"email"`
 	Name     string             `json:"name"`
-	Password string
+	Password string             `bson:"password,omitempty" json:"-"`
 }
 
 type Thread struct {

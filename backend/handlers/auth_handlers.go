@@ -16,7 +16,7 @@ func (m *Repository) Login(rw http.ResponseWriter, r *http.Request) {
 	email := r.Form.Get("email")
 	password := r.Form.Get("password")
 
-	err = m.DB.Authenticate(email, password)
+	u, err := m.DB.Authenticate(email, password)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
@@ -28,7 +28,9 @@ func (m *Repository) Login(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session.Values["authenticated"] = true
+	u.Password = ""
+
+	session.Values["user"] = u
 	session.Save(r, rw)
 
 	respondJSON(rw, "", http.StatusOK)
@@ -41,7 +43,7 @@ func (m *Repository) Logout(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session.Values["authenticated"] = false
+	delete(session.Values, "user")
 	session.Save(r, rw)
 
 	respondJSON(rw, "", http.StatusOK)
@@ -64,7 +66,7 @@ func (m *Repository) Register(rw http.ResponseWriter, r *http.Request) {
 		Password: password,
 	}
 
-	err = m.DB.RegisterUser(u)
+	user, err := m.DB.RegisterUser(u)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
@@ -76,7 +78,10 @@ func (m *Repository) Register(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session.Values["authenticated"] = true
+	// Do not store hashed password in session
+	user.Password = ""
+
+	session.Values["user"] = *user
 	session.Save(r, rw)
 
 	respondJSON(rw, "", http.StatusOK)
@@ -89,9 +94,9 @@ func (m *Repository) CheckAuth(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	auth, ok := session.Values["authenticated"]
-	if ok && auth != false {
-		rw.Write([]byte("Authentication Successful!"))
+	user, ok := session.Values["user"]
+	if ok {
+		respondJSON(rw, user, http.StatusOK)
 		return
 	}
 

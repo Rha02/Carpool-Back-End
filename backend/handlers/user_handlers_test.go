@@ -54,40 +54,6 @@ func TestGetUser(t *testing.T) {
 	}
 }
 
-func TestPostUser(t *testing.T) {
-	req, _ := http.NewRequest("POST", "/users", strings.NewReader(url.Values{
-		"email": {"jdoe@example.loc"},
-		"name":  {"John Doe"},
-	}.Encode()))
-
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	rr := httptest.NewRecorder()
-
-	handler := http.HandlerFunc(Repo.PostUser)
-	handler.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusCreated {
-		t.Errorf("Unexpected status code. expected %d, got %d", http.StatusCreated, rr.Code)
-	}
-
-	req, _ = http.NewRequest("POST", "/users", strings.NewReader(url.Values{
-		"email": {"error@example.loc"},
-		"name":  {"error"},
-	}.Encode()))
-
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	rr = httptest.NewRecorder()
-
-	handler = http.HandlerFunc(Repo.PostUser)
-	handler.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusSeeOther {
-		t.Errorf("Unexpected status code. expected %d, got %d", http.StatusSeeOther, rr.Code)
-	}
-}
-
 func TestDeleteUser(t *testing.T) {
 	req, _ := http.NewRequest("DELETE", "/users/id", nil)
 	req = mux.SetURLVars(req, map[string]string{

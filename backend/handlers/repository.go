@@ -8,6 +8,8 @@ import (
 	"github.com/Rha02/carpool_app/config"
 	"github.com/Rha02/carpool_app/dbrepo"
 	"github.com/Rha02/carpool_app/driver"
+	"github.com/Rha02/carpool_app/models"
+	"github.com/gorilla/sessions"
 )
 
 // Repo is a repository for handlers
@@ -48,6 +50,13 @@ func respondJSON(rw http.ResponseWriter, msg interface{}, code int) {
 	json.NewEncoder(rw).Encode(msg)
 }
 
-func (repo *Repository) Home(rw http.ResponseWriter, r *http.Request) {
-	fmt.Println("This is Home")
+func getSessionUser(s *sessions.Session) (*models.User, error) {
+	var user models.User
+
+	user, ok := s.Values["user"].(models.User)
+	if !ok {
+		return nil, fmt.Errorf("error: could not get user from session")
+	}
+
+	return &user, nil
 }

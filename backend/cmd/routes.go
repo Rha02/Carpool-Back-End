@@ -10,8 +10,6 @@ import (
 func routes() http.Handler {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/", handlers.Repo.Home).Methods("GET")
-
 	// Authentication
 	router.HandleFunc("/login", handlers.Repo.Login).Methods("POST")
 	router.HandleFunc("/logout", handlers.Repo.Logout).Methods("POST")
@@ -21,7 +19,6 @@ func routes() http.Handler {
 	// Users
 	router.HandleFunc("/users", handlers.Repo.GetAllUsers).Methods("GET")
 	router.HandleFunc("/users/{id}", handlers.Repo.GetUser).Methods("GET")
-	router.HandleFunc("/users", handlers.Repo.PostUser).Methods("POST")
 	router.HandleFunc("/users/{id}", handlers.Repo.DeleteUser).Methods("DELETE")
 	router.HandleFunc("/users/{id}", handlers.Repo.UpdateUser).Methods("PUT", "PATCH")
 
