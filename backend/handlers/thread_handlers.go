@@ -5,7 +5,6 @@ import (
 
 	"github.com/Rha02/carpool_app/models"
 	"github.com/gorilla/mux"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func (m *Repository) GetAllThreads(rw http.ResponseWriter, r *http.Request) {
@@ -49,16 +48,23 @@ func (m *Repository) PostThread(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := primitive.ObjectIDFromHex(r.Form.Get("user_id"))
+	session, err := m.App.CookieStore.Get(r, "session_id")
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	user, err := getSessionUser(session)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	title := r.Form.Get("title")
 	body := r.Form.Get("body")
 
 	t := models.Thread{
-		UserID: userID,
+		UserID: user.ID,
 		Title:  title,
 		Body:   body,
 	}
@@ -75,27 +81,38 @@ func (m *Repository) PostThread(rw http.ResponseWriter, r *http.Request) {
 func (m *Repository) UpdateThread(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	err := r.ParseForm()
+	if err := r.ParseForm(); err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	session, err := m.App.CookieStore.Get(r, "session_id")
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	id := vars["id"]
+	u, err := getSessionUser(session)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	title := r.Form.Get("title")
-	body := r.Form.Get("body")
 
-	t := models.Thread{
-		Title: title,
-		Body:  body,
+	t, err := m.DB.GetThreadByID(vars["id"])
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	err = m.DB.UpdateThreadByID(id, t)
-	if err != nil {
+	if t.UserID != u.ID {
+		http.Error(rw, "error: client has no access to this resource", http.StatusInternalServerError)
+		return
+	}
+
+	t.Title = r.Form.Get("title")
+	t.Body = r.Form.Get("body")
+
+	if err = m.DB.UpdateThreadByID(vars["id"], *t); err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -106,8 +123,30 @@ func (m *Repository) UpdateThread(rw http.ResponseWriter, r *http.Request) {
 func (m *Repository) DeleteThread(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	err := m.DB.DeleteThreadByID(vars["id"])
+	session, err := m.App.CookieStore.Get(r, "session_id")
 	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	u, err := getSessionUser(session)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	t, err := m.DB.GetThreadByID(vars["id"])
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if u.ID != t.UserID {
+		http.Error(rw, "error: client has no access to this resource", http.StatusInternalServerError)
+		return
+	}
+
+	if err = m.DB.DeleteThreadByID(vars["id"]); err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
