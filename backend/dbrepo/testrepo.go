@@ -1,9 +1,10 @@
 package dbrepo
 
 import (
-	"errors"
+	"net/http"
 
 	"github.com/Rha02/carpool_app/models"
+	"github.com/Rha02/carpool_app/utils"
 )
 
 func (m *TestDBRepo) Authenticate(email, password string) (*models.User, error) {
@@ -20,7 +21,7 @@ func (m *TestDBRepo) GetAllUsers() ([]models.User, error) {
 
 func (m *TestDBRepo) GetUserByID(id string) (*models.User, error) {
 	if id == "error" {
-		return nil, errors.New("error")
+		return nil, &utils.DBError{Msg: "error", Code: http.StatusNotFound}
 	}
 
 	return &models.User{}, nil
@@ -28,14 +29,14 @@ func (m *TestDBRepo) GetUserByID(id string) (*models.User, error) {
 
 func (m *TestDBRepo) UpdateUserByID(id string, u models.User) error {
 	if id == "error" {
-		return errors.New("error")
+		return &utils.DBError{Msg: "error", Code: http.StatusNotFound}
 	}
 	return nil
 }
 
 func (m *TestDBRepo) DeleteUserByID(id string) error {
 	if id == "error" {
-		return errors.New("error")
+		return &utils.DBError{Msg: "error", Code: http.StatusNotFound}
 	}
 	return nil
 }

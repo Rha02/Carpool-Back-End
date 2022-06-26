@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/Rha02/carpool_app/models"
+	"github.com/Rha02/carpool_app/utils"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -12,7 +13,8 @@ import (
 func (m *Repository) GetAllUsers(rw http.ResponseWriter, r *http.Request) {
 	users, err := m.DB.GetAllUsers()
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		dberr := err.(*utils.DBError)
+		http.Error(rw, dberr.Error(), dberr.StatusCode())
 		return
 	}
 
@@ -25,7 +27,8 @@ func (m *Repository) GetUser(rw http.ResponseWriter, r *http.Request) {
 
 	user, err := m.DB.GetUserByID(vars["id"])
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		dberr := err.(*utils.DBError)
+		http.Error(rw, dberr.Error(), dberr.StatusCode())
 		return
 	}
 
@@ -40,8 +43,7 @@ func (m *Repository) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (m *Repository) UpdateUser(rw http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
-	if err != nil {
+	if err := r.ParseForm(); err != nil {
 		http.Error(rw, err.Error(), http.StatusSeeOther)
 		return
 	}
@@ -63,7 +65,7 @@ func (m *Repository) UpdateUser(rw http.ResponseWriter, r *http.Request) {
 
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -81,9 +83,9 @@ func (m *Repository) UpdateUser(rw http.ResponseWriter, r *http.Request) {
 		Name:  name,
 	}
 
-	err = m.DB.UpdateUserByID(id, updatedUser)
-	if err != nil {
-		http.Error(rw, err.Error(), http.StatusNotAcceptable)
+	if err = m.DB.UpdateUserByID(id, updatedUser); err != nil {
+		dberr := err.(*utils.DBError)
+		http.Error(rw, dberr.Error(), dberr.StatusCode())
 		return
 	}
 

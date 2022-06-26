@@ -4,13 +4,15 @@ import (
 	"net/http"
 
 	"github.com/Rha02/carpool_app/models"
+	"github.com/Rha02/carpool_app/utils"
 	"github.com/gorilla/mux"
 )
 
 func (m *Repository) GetAllThreads(rw http.ResponseWriter, r *http.Request) {
 	threads, err := m.DB.GetAllThreads()
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		dberr := err.(*utils.DBError)
+		http.Error(rw, dberr.Error(), dberr.StatusCode())
 		return
 	}
 
@@ -22,7 +24,8 @@ func (m *Repository) GetUserThreads(rw http.ResponseWriter, r *http.Request) {
 
 	threads, err := m.DB.GetUserThreads(vars["u_id"])
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		dberr := err.(*utils.DBError)
+		http.Error(rw, dberr.Error(), dberr.StatusCode())
 		return
 	}
 
@@ -34,7 +37,8 @@ func (m *Repository) GetThread(rw http.ResponseWriter, r *http.Request) {
 
 	thread, err := m.DB.GetThreadByID(vars["id"])
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		dberr := err.(*utils.DBError)
+		http.Error(rw, dberr.Error(), dberr.StatusCode())
 		return
 	}
 
@@ -56,7 +60,7 @@ func (m *Repository) PostThread(rw http.ResponseWriter, r *http.Request) {
 
 	user, err := getSessionUser(session)
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		http.Error(rw, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
@@ -69,9 +73,9 @@ func (m *Repository) PostThread(rw http.ResponseWriter, r *http.Request) {
 		Body:   body,
 	}
 
-	err = m.DB.CreateThread(t)
-	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+	if err = m.DB.CreateThread(t); err != nil {
+		dberr := err.(*utils.DBError)
+		http.Error(rw, dberr.Error(), dberr.StatusCode())
 		return
 	}
 
@@ -94,18 +98,19 @@ func (m *Repository) UpdateThread(rw http.ResponseWriter, r *http.Request) {
 
 	u, err := getSessionUser(session)
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		http.Error(rw, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
 	t, err := m.DB.GetThreadByID(vars["id"])
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		dberr := err.(*utils.DBError)
+		http.Error(rw, dberr.Error(), dberr.StatusCode())
 		return
 	}
 
 	if t.UserID != u.ID {
-		http.Error(rw, "error: client has no access to this resource", http.StatusInternalServerError)
+		http.Error(rw, "error: client has no access to this resource", http.StatusForbidden)
 		return
 	}
 
@@ -113,7 +118,8 @@ func (m *Repository) UpdateThread(rw http.ResponseWriter, r *http.Request) {
 	t.Body = r.Form.Get("body")
 
 	if err = m.DB.UpdateThreadByID(vars["id"], *t); err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		dberr := err.(*utils.DBError)
+		http.Error(rw, dberr.Error(), dberr.StatusCode())
 		return
 	}
 
@@ -131,23 +137,25 @@ func (m *Repository) DeleteThread(rw http.ResponseWriter, r *http.Request) {
 
 	u, err := getSessionUser(session)
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		http.Error(rw, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
 	t, err := m.DB.GetThreadByID(vars["id"])
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		dberr := err.(*utils.DBError)
+		http.Error(rw, dberr.Error(), dberr.StatusCode())
 		return
 	}
 
 	if u.ID != t.UserID {
-		http.Error(rw, "error: client has no access to this resource", http.StatusInternalServerError)
+		http.Error(rw, "error: client has no access to this resource", http.StatusForbidden)
 		return
 	}
 
 	if err = m.DB.DeleteThreadByID(vars["id"]); err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		dberr := err.(*utils.DBError)
+		http.Error(rw, dberr.Error(), dberr.StatusCode())
 		return
 	}
 

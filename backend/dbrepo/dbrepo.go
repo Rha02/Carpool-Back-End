@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/Rha02/carpool_app/driver"
 	"github.com/Rha02/carpool_app/models"
+	"github.com/Rha02/carpool_app/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -28,6 +30,8 @@ func NewTestingRepo() DatabaseRepository {
 	return &TestDBRepo{}
 }
 
+// TODO: replace err.Error() before deploying
+
 func (m *DBRepo) Authenticate(email string, password string) (*models.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -35,14 +39,17 @@ func (m *DBRepo) Authenticate(email string, password string) (*models.User, erro
 	var u models.User
 
 	filter := bson.M{"email": email}
-	err := m.DB.Conn.Collection("users").FindOne(ctx, filter).Decode(&u)
-	if err != nil {
-		return nil, err
+
+	if err := m.DB.Conn.Collection("users").FindOne(ctx, filter).Decode(&u); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, &utils.DBError{Msg: "error: user with this email is not found", Code: http.StatusNotFound}
+		}
+
+		return nil, &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
-	if err != nil {
-		return nil, err
+	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)); err != nil {
+		return nil, &utils.DBError{Msg: "error: invalid credentials", Code: http.StatusUnauthorized}
 	}
 
 	return &u, nil
@@ -53,20 +60,23 @@ func (m *DBRepo) RegisterUser(u models.User) (*models.User, error) {
 	defer cancel()
 
 	filter := bson.M{"email": u.Email}
-	err := m.DB.Conn.Collection("users").FindOne(ctx, filter).Err()
-	if !errors.Is(err, mongo.ErrNoDocuments) {
-		return nil, fmt.Errorf("error: this email is already in use")
+	if err := m.DB.Conn.Collection("users").FindOne(ctx, filter).Err(); !errors.Is(err, mongo.ErrNoDocuments) {
+		if err != nil {
+			return nil, &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
+		}
+		return nil, &utils.DBError{Msg: "error: this email is already in use", Code: http.StatusBadRequest}
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, err
+		return nil, &utils.DBError{Msg: err.Error(), Code: http.StatusBadRequest}
 	}
+
 	u.Password = string(hashedPassword)
 
 	res, err := m.DB.Conn.Collection("users").InsertOne(ctx, u)
 	if err != nil {
-		return nil, err
+		return nil, &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
 	}
 
 	u.ID = res.InsertedID.(primitive.ObjectID)
@@ -83,13 +93,13 @@ func (m *DBRepo) GetAllUsers() ([]models.User, error) {
 
 	cur, err := m.DB.Conn.Collection("users").Find(ctx, bson.D{})
 	if err != nil {
-		return nil, err
+		return nil, &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
 	}
 
 	defer cur.Close(ctx)
 
 	if err = cur.All(ctx, &res); err != nil {
-		return nil, err
+		return nil, &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
 	}
 
 	return res, nil
@@ -103,13 +113,15 @@ func (m *DBRepo) GetUserByID(id string) (*models.User, error) {
 
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return nil, err
+		return nil, &utils.DBError{Msg: err.Error(), Code: http.StatusBadRequest}
 	}
 
 	filter := bson.M{"_id": objectId}
-	err = m.DB.Conn.Collection("users").FindOne(ctx, filter).Decode(&res)
-	if err != nil {
-		return nil, err
+	if err = m.DB.Conn.Collection("users").FindOne(ctx, filter).Decode(&res); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, &utils.DBError{Msg: fmt.Sprintf("error: user with id %s does not exist", id), Code: http.StatusNotFound}
+		}
+		return nil, &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
 	}
 
 	return &res, nil
@@ -121,12 +133,17 @@ func (m *DBRepo) DeleteUserByID(id string) error {
 
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return err
+		return &utils.DBError{Msg: err.Error(), Code: http.StatusBadRequest}
 	}
 
-	_, err = m.DB.Conn.Collection("users").DeleteOne(ctx, bson.M{"_id": objectId})
+	filter := bson.M{"_id": objectId}
+	res, err := m.DB.Conn.Collection("users").DeleteOne(ctx, filter)
 	if err != nil {
-		return err
+		return &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
+	}
+
+	if res.DeletedCount == 0 {
+		return &utils.DBError{Msg: "error: user with id %s does not exist", Code: http.StatusNotFound}
 	}
 
 	return nil
@@ -138,14 +155,18 @@ func (m *DBRepo) UpdateUserByID(id string, updatedUser models.User) error {
 
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return err
+		return &utils.DBError{Msg: err.Error(), Code: http.StatusBadRequest}
 	}
 
-	query := bson.D{{Key: "$set", Value: updatedUser}}
+	filter := bson.D{{Key: "$set", Value: updatedUser}}
 
-	_, err = m.DB.Conn.Collection("users").UpdateByID(ctx, objectId, query)
+	res, err := m.DB.Conn.Collection("users").UpdateByID(ctx, objectId, filter)
 	if err != nil {
-		return err
+		return &utils.DBError{Msg: err.Error(), Code: http.StatusBadRequest}
+	}
+
+	if res.MatchedCount == 0 {
+		return &utils.DBError{Msg: fmt.Sprintf("error: user with id %s does not exist", id), Code: http.StatusNotFound}
 	}
 
 	return nil
@@ -157,16 +178,15 @@ func (m *DBRepo) GetAllThreads() ([]models.Thread, error) {
 
 	cur, err := m.DB.Conn.Collection("threads").Find(ctx, bson.D{})
 	if err != nil {
-		return nil, err
+		return nil, &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
 	}
 
 	defer cur.Close(ctx)
 
 	var res []models.Thread
 
-	err = cur.All(ctx, &res)
-	if err != nil {
-		return nil, err
+	if err = cur.All(ctx, &res); err != nil {
+		return nil, &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
 	}
 
 	return res, nil
@@ -180,13 +200,15 @@ func (m *DBRepo) GetThreadByID(id string) (*models.Thread, error) {
 
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return nil, err
+		return nil, &utils.DBError{Msg: err.Error(), Code: http.StatusBadRequest}
 	}
 
 	filter := bson.M{"_id": objectID}
-	err = m.DB.Conn.Collection("threads").FindOne(ctx, filter).Decode(&res)
-	if err != nil {
-		return nil, err
+	if err = m.DB.Conn.Collection("threads").FindOne(ctx, filter).Decode(&res); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, &utils.DBError{Msg: err.Error(), Code: http.StatusNotFound}
+		}
+		return nil, &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
 	}
 
 	return &res, nil
@@ -196,9 +218,8 @@ func (m *DBRepo) CreateThread(t models.Thread) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := m.DB.Conn.Collection("threads").InsertOne(ctx, t)
-	if err != nil {
-		return err
+	if _, err := m.DB.Conn.Collection("threads").InsertOne(ctx, t); err != nil {
+		return &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
 	}
 
 	return nil
@@ -210,13 +231,17 @@ func (m *DBRepo) DeleteThreadByID(id string) error {
 
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return err
+		return &utils.DBError{Msg: err.Error(), Code: http.StatusBadRequest}
 	}
 
 	filter := bson.M{"_id": objectID}
-	_, err = m.DB.Conn.Collection("threads").DeleteOne(ctx, filter)
+	res, err := m.DB.Conn.Collection("threads").DeleteOne(ctx, filter)
 	if err != nil {
-		return err
+		return &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
+	}
+
+	if res.DeletedCount == 0 {
+		return &utils.DBError{Msg: fmt.Sprintf("error: thread with id %s does not exist", id), Code: http.StatusNotFound}
 	}
 
 	return nil
@@ -228,13 +253,17 @@ func (m *DBRepo) UpdateThreadByID(id string, ut models.Thread) error {
 
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return err
+		return &utils.DBError{Msg: err.Error(), Code: http.StatusBadRequest}
 	}
 
-	query := bson.D{{"$set", ut}}
-	_, err = m.DB.Conn.Collection("threads").UpdateByID(ctx, objectID, query)
+	filter := bson.D{{"$set", ut}}
+	res, err := m.DB.Conn.Collection("threads").UpdateByID(ctx, objectID, filter)
 	if err != nil {
-		return err
+		return &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
+	}
+
+	if res.MatchedCount == 0 {
+		return &utils.DBError{Msg: fmt.Sprintf("error: thread with id %s does not exist", id), Code: http.StatusNotFound}
 	}
 
 	return nil
@@ -246,23 +275,22 @@ func (m *DBRepo) GetUserThreads(u_id string) ([]models.Thread, error) {
 
 	objectID, err := primitive.ObjectIDFromHex(u_id)
 	if err != nil {
-		return nil, err
+		return nil, &utils.DBError{Msg: err.Error(), Code: http.StatusBadRequest}
 	}
 
 	filter := bson.D{{"user_id", objectID}}
 
 	cur, err := m.DB.Conn.Collection("threads").Find(ctx, filter)
 	if err != nil {
-		return nil, err
+		return nil, &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
 	}
 
 	defer cur.Close(ctx)
 
 	var res []models.Thread
 
-	err = cur.All(ctx, &res)
-	if err != nil {
-		return nil, err
+	if err = cur.All(ctx, &res); err != nil {
+		return nil, &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
 	}
 
 	return res, nil

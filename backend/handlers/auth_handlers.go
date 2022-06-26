@@ -4,11 +4,11 @@ import (
 	"net/http"
 
 	"github.com/Rha02/carpool_app/models"
+	"github.com/Rha02/carpool_app/utils"
 )
 
 func (m *Repository) Login(rw http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
-	if err != nil {
+	if err := r.ParseForm(); err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -18,7 +18,8 @@ func (m *Repository) Login(rw http.ResponseWriter, r *http.Request) {
 
 	u, err := m.DB.Authenticate(email, password)
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		dberr := err.(*utils.DBError)
+		http.Error(rw, dberr.Error(), dberr.StatusCode())
 		return
 	}
 
@@ -68,7 +69,8 @@ func (m *Repository) Register(rw http.ResponseWriter, r *http.Request) {
 
 	user, err := m.DB.RegisterUser(u)
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		dberr := err.(*utils.DBError)
+		http.Error(rw, dberr.Error(), dberr.StatusCode())
 		return
 	}
 
