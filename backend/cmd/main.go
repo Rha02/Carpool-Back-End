@@ -41,13 +41,14 @@ func main() {
 	repo := handlers.NewRepo(&app, db)
 	handlers.NewHandlers(repo)
 
-	router := routes()
+	auth_key := os.Getenv("AUTH_KEY")
+	router := routes(auth_key)
 
 	server := &http.Server{
 		Addr:    port,
 		Handler: router,
 	}
 
-	fmt.Printf("App Running on Port %s\n", os.Getenv("DB_PORT"))
+	fmt.Printf("App Running on Port %s\n", port)
 	server.ListenAndServe()
 }

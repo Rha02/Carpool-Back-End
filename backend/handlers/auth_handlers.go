@@ -5,7 +5,15 @@ import (
 
 	"github.com/Rha02/carpool_app/models"
 	"github.com/Rha02/carpool_app/utils"
+	"github.com/gorilla/csrf"
 )
+
+func (m *Repository) GetToken(rw http.ResponseWriter, r *http.Request) {
+	csrfToken := csrf.Token(r)
+	rw.Header().Set("X-CSRF-Token", csrfToken)
+
+	respondJSON(rw, "", http.StatusOK)
+}
 
 func (m *Repository) Login(rw http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
@@ -33,6 +41,8 @@ func (m *Repository) Login(rw http.ResponseWriter, r *http.Request) {
 
 	session.Values["user"] = u
 	session.Save(r, rw)
+
+	rw.Header().Set("X-CSRF-Token", csrf.Token(r))
 
 	respondJSON(rw, "", http.StatusOK)
 }
@@ -85,6 +95,8 @@ func (m *Repository) Register(rw http.ResponseWriter, r *http.Request) {
 
 	session.Values["user"] = *user
 	session.Save(r, rw)
+
+	rw.Header().Set("X-CSRF-Token", csrf.Token(r))
 
 	respondJSON(rw, "", http.StatusOK)
 }

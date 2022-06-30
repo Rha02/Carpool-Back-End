@@ -4,11 +4,19 @@ import (
 	"net/http"
 
 	"github.com/Rha02/carpool_app/handlers"
+	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
 )
 
-func routes() http.Handler {
+func routes(key string) http.Handler {
 	router := mux.NewRouter()
+
+	// Middleware
+	csrfMiddleware := csrf.Protect([]byte(key), csrf.Secure(false))
+	router.Use(csrfMiddleware)
+
+	// CSRF Token
+	router.HandleFunc("/get-token", handlers.Repo.GetToken).Methods("GET")
 
 	// Authentication
 	router.HandleFunc("/login", handlers.Repo.Login).Methods("POST")
