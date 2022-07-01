@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/csrf"
 )
 
+// GetToken responds with a CSRF token
 func (m *Repository) GetToken(rw http.ResponseWriter, r *http.Request) {
 	csrfToken := csrf.Token(r)
 	rw.Header().Set("X-CSRF-Token", csrfToken)
@@ -42,8 +43,6 @@ func (m *Repository) Login(rw http.ResponseWriter, r *http.Request) {
 	session.Values["user"] = u
 	session.Save(r, rw)
 
-	rw.Header().Set("X-CSRF-Token", csrf.Token(r))
-
 	respondJSON(rw, "", http.StatusOK)
 }
 
@@ -60,6 +59,7 @@ func (m *Repository) Logout(rw http.ResponseWriter, r *http.Request) {
 	respondJSON(rw, "", http.StatusOK)
 }
 
+// Register registers a new user and authenticates them
 func (m *Repository) Register(rw http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
@@ -96,11 +96,10 @@ func (m *Repository) Register(rw http.ResponseWriter, r *http.Request) {
 	session.Values["user"] = *user
 	session.Save(r, rw)
 
-	rw.Header().Set("X-CSRF-Token", csrf.Token(r))
-
 	respondJSON(rw, "", http.StatusOK)
 }
 
+// CheckAuth
 func (m *Repository) CheckAuth(rw http.ResponseWriter, r *http.Request) {
 	session, err := m.App.CookieStore.Get(r, "session_id")
 	if err != nil {

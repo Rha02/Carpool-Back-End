@@ -16,22 +16,27 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// DBRepo is a repository of database related methods
 type DBRepo struct {
 	DB *driver.DB
 }
 
+// TestDBRepo imitates DBRepo in unit tests
 type TestDBRepo struct{}
 
+// NewDatabaseRepo creates and returns a new DBRepo
 func NewDatabaseRepo(db *driver.DB) DatabaseRepository {
 	return &DBRepo{db}
 }
 
+// NewTestingRepo creates and returns a TestDBRepo
 func NewTestingRepo() DatabaseRepository {
 	return &TestDBRepo{}
 }
 
 // TODO: replace err.Error() before deploying
 
+// Authenticate authenticates a user using given credentials
 func (m *DBRepo) Authenticate(email string, password string) (*models.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -55,6 +60,7 @@ func (m *DBRepo) Authenticate(email string, password string) (*models.User, erro
 	return &u, nil
 }
 
+// RegisterUser creates a new user and authenticates them
 func (m *DBRepo) RegisterUser(u models.User) (*models.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -73,6 +79,9 @@ func (m *DBRepo) RegisterUser(u models.User) (*models.User, error) {
 	}
 
 	u.Password = string(hashedPassword)
+
+	now := time.Now()
+	u.CreatedAt, u.UpdatedAt = now, now
 
 	res, err := m.DB.Conn.Collection("users").InsertOne(ctx, u)
 	if err != nil {
@@ -105,6 +114,7 @@ func (m *DBRepo) GetAllUsers() ([]models.User, error) {
 	return res, nil
 }
 
+// GetUserByID returns a user in records by their id
 func (m *DBRepo) GetUserByID(id string) (*models.User, error) {
 	var res models.User
 
@@ -127,28 +137,35 @@ func (m *DBRepo) GetUserByID(id string) (*models.User, error) {
 	return &res, nil
 }
 
+// DeleteUserByID is an unimplemented method meant for User deletion
 func (m *DBRepo) DeleteUserByID(id string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	/* TODO:
+	- Develop reliable validation in handlers first
+	- Before deleting user, delete user-owned resources (threads, comments, etc.)
+	*/
 
-	objectId, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return &utils.DBError{Msg: err.Error(), Code: http.StatusBadRequest}
-	}
+	// ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// defer cancel()
 
-	filter := bson.M{"_id": objectId}
-	res, err := m.DB.Conn.Collection("users").DeleteOne(ctx, filter)
-	if err != nil {
-		return &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
-	}
+	// objectId, err := primitive.ObjectIDFromHex(id)
+	// if err != nil {
+	// 	return &utils.DBError{Msg: err.Error(), Code: http.StatusBadRequest}
+	// }
 
-	if res.DeletedCount == 0 {
-		return &utils.DBError{Msg: "error: user with id %s does not exist", Code: http.StatusNotFound}
-	}
+	// filter := bson.M{"_id": objectId}
+	// res, err := m.DB.Conn.Collection("users").DeleteOne(ctx, filter)
+	// if err != nil {
+	// 	return &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
+	// }
 
-	return nil
+	// if res.DeletedCount == 0 {
+	// 	return &utils.DBError{Msg: "error: user with id %s does not exist", Code: http.StatusNotFound}
+	// }
+
+	return &utils.DBError{Msg: "error: not implemented yet", Code: http.StatusNotImplemented}
 }
 
+// UpdateUserByID updates a user by their id
 func (m *DBRepo) UpdateUserByID(id string, updatedUser models.User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -157,6 +174,8 @@ func (m *DBRepo) UpdateUserByID(id string, updatedUser models.User) error {
 	if err != nil {
 		return &utils.DBError{Msg: err.Error(), Code: http.StatusBadRequest}
 	}
+
+	updatedUser.UpdatedAt = time.Now()
 
 	filter := bson.D{{Key: "$set", Value: updatedUser}}
 
@@ -172,6 +191,7 @@ func (m *DBRepo) UpdateUserByID(id string, updatedUser models.User) error {
 	return nil
 }
 
+// GetAllThreads returns an array of all existing threads
 func (m *DBRepo) GetAllThreads() ([]models.Thread, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -192,6 +212,7 @@ func (m *DBRepo) GetAllThreads() ([]models.Thread, error) {
 	return res, nil
 }
 
+// GetThreadByID returns a thread by an id
 func (m *DBRepo) GetThreadByID(id string) (*models.Thread, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -214,9 +235,13 @@ func (m *DBRepo) GetThreadByID(id string) (*models.Thread, error) {
 	return &res, nil
 }
 
+// CreateThread creates a new thread
 func (m *DBRepo) CreateThread(t models.Thread) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+
+	now := time.Now()
+	t.CreatedAt, t.UpdatedAt = now, now
 
 	if _, err := m.DB.Conn.Collection("threads").InsertOne(ctx, t); err != nil {
 		return &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
@@ -225,6 +250,7 @@ func (m *DBRepo) CreateThread(t models.Thread) error {
 	return nil
 }
 
+// DeleteThreadByID deletes a thread by a given id
 func (m *DBRepo) DeleteThreadByID(id string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -247,6 +273,7 @@ func (m *DBRepo) DeleteThreadByID(id string) error {
 	return nil
 }
 
+// UpdateThreadByID updates a thread by a given id
 func (m *DBRepo) UpdateThreadByID(id string, ut models.Thread) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -255,6 +282,8 @@ func (m *DBRepo) UpdateThreadByID(id string, ut models.Thread) error {
 	if err != nil {
 		return &utils.DBError{Msg: err.Error(), Code: http.StatusBadRequest}
 	}
+
+	ut.UpdatedAt = time.Now()
 
 	filter := bson.D{{"$set", ut}}
 	res, err := m.DB.Conn.Collection("threads").UpdateByID(ctx, objectID, filter)
@@ -269,6 +298,7 @@ func (m *DBRepo) UpdateThreadByID(id string, ut models.Thread) error {
 	return nil
 }
 
+// GetUserThreads returns an array of threads created by a user with a specified id
 func (m *DBRepo) GetUserThreads(u_id string) ([]models.Thread, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
