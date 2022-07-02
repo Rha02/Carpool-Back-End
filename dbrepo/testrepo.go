@@ -3,8 +3,8 @@ package dbrepo
 import (
 	"net/http"
 
-	"github.com/Rha02/carpool_app/models"
-	"github.com/Rha02/carpool_app/utils"
+	"github.com/Rha02/Carpool-Back-End/models"
+	"github.com/Rha02/Carpool-Back-End/utils"
 )
 
 func (m *TestDBRepo) Authenticate(email, password string) (*models.User, error) {

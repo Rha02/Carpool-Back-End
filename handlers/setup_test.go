@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/Rha02/carpool_app/config"
+	"github.com/Rha02/Carpool-Back-End/config"
 )
 
 func TestMain(m *testing.M) {

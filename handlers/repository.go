@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Rha02/carpool_app/config"
-	"github.com/Rha02/carpool_app/dbrepo"
-	"github.com/Rha02/carpool_app/driver"
-	"github.com/Rha02/carpool_app/models"
+	"github.com/Rha02/Carpool-Back-End/config"
+	"github.com/Rha02/Carpool-Back-End/dbrepo"
+	"github.com/Rha02/Carpool-Back-End/driver"
+	"github.com/Rha02/Carpool-Back-End/models"
 	"github.com/gorilla/sessions"
 )
 

@@ -1,4 +1,4 @@
-module github.com/Rha02/carpool_app
+module github.com/Rha02/Carpool-Back-End
 
 go 1.17
 

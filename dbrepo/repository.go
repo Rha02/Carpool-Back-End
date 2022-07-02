@@ -1,6 +1,6 @@
 package dbrepo
 
-import "github.com/Rha02/carpool_app/models"
+import "github.com/Rha02/Carpool-Back-End/models"
 
 // DatabaseRepository is an interface for DBRepo
 type DatabaseRepository interface {

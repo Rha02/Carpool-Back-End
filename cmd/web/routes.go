@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 
-	"github.com/Rha02/carpool_app/handlers"
+	"github.com/Rha02/Carpool-Back-End/handlers"
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
 )

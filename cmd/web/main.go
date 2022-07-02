@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/Rha02/carpool_app/config"
-	"github.com/Rha02/carpool_app/driver"
-	"github.com/Rha02/carpool_app/handlers"
-	"github.com/Rha02/carpool_app/models"
+	"github.com/Rha02/Carpool-Back-End/config"
+	"github.com/Rha02/Carpool-Back-End/driver"
+	"github.com/Rha02/Carpool-Back-End/handlers"
+	"github.com/Rha02/Carpool-Back-End/models"
 	"github.com/gorilla/sessions"
 	"github.com/joho/godotenv"
 )
@@ -21,7 +21,7 @@ var app config.AppConfig
 func main() {
 	fmt.Println("Starting App...")
 
-	godotenv.Load("../.env")
+	godotenv.Load("../../.env")
 
 	uri := fmt.Sprintf("mongodb://%s:%s", os.Getenv("DB_HOST"), os.Getenv("DB_PORT"))
 
