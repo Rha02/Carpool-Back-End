@@ -38,5 +38,10 @@ func routes(key string) http.Handler {
 	router.HandleFunc("/threads/{id}", handlers.Repo.DeleteThread).Methods("DELETE")
 	router.HandleFunc("/threads/{id}", handlers.Repo.UpdateThread).Methods("PUT", "PATCH")
 
+	// Comments
+	router.HandleFunc("/threads/{t_id}/comments", handlers.Repo.PostComment).Methods("POST")
+	router.HandleFunc("/threads/{t_id}/comments/{c_id}", handlers.Repo.UpdateComment).Methods("PUT", "PATCH")
+	router.HandleFunc("/threads/{t_id}/comments/{c_id}", handlers.Repo.DeleteComment).Methods("DELETE")
+
 	return router
 }

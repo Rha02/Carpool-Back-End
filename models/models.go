@@ -22,10 +22,9 @@ type Thread struct {
 	Body      string             `json:"body"`
 	CreatedAt time.Time          `bson:"created_at,omitempty" json:"created_at"`
 	UpdatedAt time.Time          `bson:"updated_at,omitempty" json:"updated_at"`
-	Comments  []Comment          `json:"comments"`
+	Comments  []Comment          `bson:"comments,omitempty" json:"comments"`
 }
 
-// Unimplemented yet
 type Comment struct {
 	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	UserID    primitive.ObjectID `bson:"user_id" json:"user_id"`

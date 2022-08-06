@@ -18,4 +18,9 @@ type DatabaseRepository interface {
 	CreateThread(t models.Thread) error
 	UpdateThreadByID(id string, t models.Thread) error
 	DeleteThreadByID(id string) error
+
+	GetComment(t_id, c_id string) (*models.Comment, error)
+	CreateComment(t_id string, comment models.Comment) error
+	UpdateComment(t_id string, c_id string, comment models.Comment) error
+	DeleteComment(t_id string, c_id string) error
 }

@@ -1,5 +1,6 @@
 package utils
 
+// DB utils
 type DBError struct {
 	Msg  string
 	Code int

@@ -68,9 +68,10 @@ func (m *Repository) PostThread(rw http.ResponseWriter, r *http.Request) {
 	body := r.Form.Get("body")
 
 	t := models.Thread{
-		UserID: user.ID,
-		Title:  title,
-		Body:   body,
+		UserID:   user.ID,
+		Title:    title,
+		Body:     body,
+		Comments: []models.Comment{},
 	}
 
 	if err = m.DB.CreateThread(t); err != nil {

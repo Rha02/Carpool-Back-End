@@ -64,3 +64,19 @@ func (m *TestDBRepo) UpdateThreadByID(id string, t models.Thread) error {
 func (m *TestDBRepo) DeleteThreadByID(id string) error {
 	return nil
 }
+
+func (m *TestDBRepo) GetComment(t_id, c_id string) (*models.Comment, error) {
+	return nil, nil
+}
+
+func (m *TestDBRepo) CreateComment(t_id string, comment models.Comment) error {
+	return nil
+}
+
+func (m *TestDBRepo) UpdateComment(t_id string, c_id string, comment models.Comment) error {
+	return nil
+}
+
+func (m *TestDBRepo) DeleteComment(t_id, c_id string) error {
+	return nil
+}
