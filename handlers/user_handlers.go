@@ -74,12 +74,12 @@ func (m *Repository) UpdateUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	email := r.Form.Get("email")
+	phone := r.Form.Get("phone")
 	name := r.Form.Get("name")
 
 	updatedUser := models.User{
 		ID:    objectID,
-		Email: email,
+		Phone: phone,
 		Name:  name,
 	}
 

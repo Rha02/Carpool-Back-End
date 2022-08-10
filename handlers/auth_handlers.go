@@ -22,10 +22,10 @@ func (m *Repository) Login(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	email := r.Form.Get("email")
+	phone := r.Form.Get("phone")
 	password := r.Form.Get("password")
 
-	u, err := m.DB.Authenticate(email, password)
+	u, err := m.DB.Authenticate(phone, password)
 	if err != nil {
 		dberr := err.(*utils.DBError)
 		http.Error(rw, dberr.Error(), dberr.StatusCode())
@@ -67,12 +67,12 @@ func (m *Repository) Register(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	email := r.Form.Get("email")
+	phone := r.Form.Get("phone")
 	name := r.Form.Get("name")
 	password := r.Form.Get("password")
 
 	u := models.User{
-		Email:    email,
+		Phone:    phone,
 		Name:     name,
 		Password: password,
 	}

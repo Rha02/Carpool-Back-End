@@ -37,17 +37,17 @@ func NewTestingRepo() DatabaseRepository {
 // TODO: replace err.Error() before deploying
 
 // Authenticate authenticates a user using given credentials
-func (m *DBRepo) Authenticate(email string, password string) (*models.User, error) {
+func (m *DBRepo) Authenticate(phone string, password string) (*models.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	var u models.User
 
-	filter := bson.M{"email": email}
+	filter := bson.M{"phone": phone}
 
 	if err := m.DB.Conn.Collection("users").FindOne(ctx, filter).Decode(&u); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, &utils.DBError{Msg: "error: user with this email is not found", Code: http.StatusNotFound}
+			return nil, &utils.DBError{Msg: "error: user with this phone number is not found", Code: http.StatusNotFound}
 		}
 
 		return nil, &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
@@ -65,12 +65,12 @@ func (m *DBRepo) RegisterUser(u models.User) (*models.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	filter := bson.M{"email": u.Email}
+	filter := bson.M{"phone": u.Phone}
 	if err := m.DB.Conn.Collection("users").FindOne(ctx, filter).Err(); !errors.Is(err, mongo.ErrNoDocuments) {
 		if err != nil {
 			return nil, &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
 		}
-		return nil, &utils.DBError{Msg: "error: this email is already in use", Code: http.StatusBadRequest}
+		return nil, &utils.DBError{Msg: "error: this phone number is already in use", Code: http.StatusBadRequest}
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
