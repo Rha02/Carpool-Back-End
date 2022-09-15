@@ -12,7 +12,7 @@ func routes(key string) http.Handler {
 	router := mux.NewRouter()
 
 	// Middleware
-	csrfMiddleware := csrf.Protect([]byte(key), csrf.Secure(false))
+	csrfMiddleware := csrf.Protect([]byte(key), csrf.Secure(false), csrf.Path("/"))
 	router.Use(csrfMiddleware)
 
 	// CSRF Token
@@ -39,6 +39,7 @@ func routes(key string) http.Handler {
 	router.HandleFunc("/threads/{id}", handlers.Repo.UpdateThread).Methods("PUT", "PATCH")
 
 	// Comments
+	router.HandleFunc("/threads/{t_id}/comments/{c_id}", handlers.Repo.GetComment).Methods("GET")
 	router.HandleFunc("/threads/{t_id}/comments", handlers.Repo.PostComment).Methods("POST")
 	router.HandleFunc("/threads/{t_id}/comments/{c_id}", handlers.Repo.UpdateComment).Methods("PUT", "PATCH")
 	router.HandleFunc("/threads/{t_id}/comments/{c_id}", handlers.Repo.DeleteComment).Methods("DELETE")

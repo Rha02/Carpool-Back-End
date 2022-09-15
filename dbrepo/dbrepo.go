@@ -13,6 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -143,24 +144,6 @@ func (m *DBRepo) DeleteUserByID(id string) error {
 	- Develop reliable validation in handlers first
 	- Before deleting user, delete user-owned resources (threads, comments, etc.)
 	*/
-
-	// ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	// defer cancel()
-
-	// objectId, err := primitive.ObjectIDFromHex(id)
-	// if err != nil {
-	// 	return &utils.DBError{Msg: err.Error(), Code: http.StatusBadRequest}
-	// }
-
-	// filter := bson.M{"_id": objectId}
-	// res, err := m.DB.Conn.Collection("users").DeleteOne(ctx, filter)
-	// if err != nil {
-	// 	return &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
-	// }
-
-	// if res.DeletedCount == 0 {
-	// 	return &utils.DBError{Msg: "error: user with id %s does not exist", Code: http.StatusNotFound}
-	// }
 
 	return &utils.DBError{Msg: "error: not implemented yet", Code: http.StatusNotImplemented}
 }
@@ -335,30 +318,25 @@ func (m *DBRepo) GetComment(t_id string, c_id string) (*models.Comment, error) {
 		return nil, &utils.DBError{Msg: err.Error(), Code: http.StatusBadRequest}
 	}
 
+	commentID, err := primitive.ObjectIDFromHex(c_id)
+	if err != nil {
+		return nil, &utils.DBError{Msg: err.Error(), Code: http.StatusBadRequest}
+	}
+
 	var t models.Thread
 
-	filter := bson.M{"_id": threadID}
-	if err = m.DB.Conn.Collection("threads").FindOne(ctx, filter).Decode(&t); err != nil {
+	// filter by threadID and project comment with commentID
+	filter := bson.D{{"_id", threadID}, {"comments._id", commentID}}
+	projection := bson.M{"comments.$": 1}
+
+	if err = m.DB.Conn.Collection("threads").FindOne(ctx, filter, options.FindOne().SetProjection(projection)).Decode(&t); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, &utils.DBError{Msg: err.Error(), Code: http.StatusNotFound}
 		}
 		return nil, &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
 	}
 
-	commentID, err := primitive.ObjectIDFromHex(c_id)
-	if err != nil {
-		return nil, &utils.DBError{Msg: err.Error(), Code: http.StatusBadRequest}
-	}
-
-	// Iterate over comments to find the one with the right ID
-	var res *models.Comment
-	for i := 0; i < len(t.Comments); i++ {
-		if t.Comments[i].ID == commentID {
-			res = &t.Comments[i]
-		}
-	}
-
-	return res, nil
+	return &t.Comments[0], nil
 }
 
 func (m *DBRepo) CreateComment(t_id string, comment models.Comment) error {
@@ -374,11 +352,7 @@ func (m *DBRepo) CreateComment(t_id string, comment models.Comment) error {
 	now := time.Now()
 	comment.CreatedAt, comment.UpdatedAt = now, now
 
-	query := bson.D{{
-		"$push", bson.M{
-			"comments": comment,
-		},
-	}}
+	query := bson.D{{"$push", bson.M{"comments": comment}}}
 
 	res, err := m.DB.Conn.Collection("threads").UpdateByID(ctx, threadID, query)
 	if err != nil {
@@ -401,37 +375,24 @@ func (m *DBRepo) UpdateComment(t_id string, c_id string, updatedComment models.C
 		return &utils.DBError{Msg: err.Error(), Code: http.StatusBadRequest}
 	}
 
-	filter := bson.M{"_id": threadID}
-
-	var thread models.Thread
-
-	if err = m.DB.Conn.Collection("threads").FindOne(ctx, filter).Decode(&thread); err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return &utils.DBError{Msg: err.Error(), Code: http.StatusNotFound}
-		}
-		return &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
-	}
-
 	commentID, err := primitive.ObjectIDFromHex(c_id)
 	if err != nil {
 		return &utils.DBError{Msg: err.Error(), Code: http.StatusBadRequest}
 	}
 
-	for i := 0; i < len(thread.Comments); i++ {
-		if thread.Comments[i].ID == commentID {
-			thread.Comments[i].Body = updatedComment.Body
-			thread.Comments[i].UpdatedAt = time.Now()
+	query := bson.D{{"_id", threadID}, {"comments._id", commentID}}
+	update := bson.M{"$set": bson.M{"comments.$": updatedComment}}
 
-			query := bson.M{"$set": thread}
-			if _, err := m.DB.Conn.Collection("threads").UpdateByID(ctx, threadID, query); err != nil {
-				return &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
-			}
-
-			return nil
-		}
+	res, err := m.DB.Conn.Collection("threads").UpdateOne(ctx, query, update)
+	if err != nil {
+		return &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
 	}
 
-	return &utils.DBError{Msg: "error: comment with specified id does not exist", Code: http.StatusNotFound}
+	if res.MatchedCount == 0 {
+		return &utils.DBError{Msg: "error: could not find comment from combination of thread id and comment id", Code: http.StatusNotFound}
+	}
+
+	return nil
 }
 
 func (m *DBRepo) DeleteComment(t_id, c_id string) error {
@@ -448,28 +409,17 @@ func (m *DBRepo) DeleteComment(t_id, c_id string) error {
 		return &utils.DBError{Msg: err.Error(), Code: http.StatusBadRequest}
 	}
 
-	var thread models.Thread
 	filter := bson.M{"_id": threadID}
+	delete := bson.M{"$pull": bson.M{"comments": bson.M{"_id": commentID}}}
 
-	if err := m.DB.Conn.Collection("threads").FindOne(ctx, filter).Decode(&thread); err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return &utils.DBError{Msg: err.Error(), Code: http.StatusNotFound}
-		}
+	res, err := m.DB.Conn.Collection("threads").UpdateOne(ctx, filter, delete)
+	if err != nil {
 		return &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
 	}
 
-	for i := 0; i < len(thread.Comments); i++ {
-		if thread.Comments[i].ID == commentID {
-			thread.Comments = append(thread.Comments[:i], thread.Comments[i+1:]...)
-
-			query := bson.M{"$set": thread}
-			if _, err := m.DB.Conn.Collection("threads").UpdateByID(ctx, threadID, query); err != nil {
-				return &utils.DBError{Msg: err.Error(), Code: http.StatusInternalServerError}
-			}
-
-			return nil
-		}
+	if res.MatchedCount == 0 {
+		return &utils.DBError{Msg: "error: could not find comment from combination of thread id and comment id", Code: http.StatusNotFound}
 	}
 
-	return &utils.DBError{Msg: "error: comment with specified id does not exist", Code: http.StatusNotFound}
+	return nil
 }

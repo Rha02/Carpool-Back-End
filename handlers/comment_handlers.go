@@ -8,6 +8,22 @@ import (
 	"github.com/gorilla/mux"
 )
 
+func (m *Repository) GetComment(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	threadID := vars["t_id"]
+	commentID := vars["c_id"]
+
+	res, err := m.DB.GetComment(threadID, commentID)
+	if err != nil {
+		dberr := err.(*utils.DBError)
+		http.Error(rw, dberr.Error(), dberr.StatusCode())
+		return
+	}
+
+	respondJSON(rw, res, http.StatusOK)
+}
+
 func (m *Repository) PostComment(rw http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
